@@ -15,10 +15,10 @@ dir.create("out", showWarnings = FALSE) ## create a directory to store outputs
 model_str = '
 functions{
   real[] odemodel(real t, real[] N, real[] p, real[] x_r, int[] x_i){
-    // p[1]=r1, p[2] = r2, p[3] = K1, p[4] = K2, p[5] = alpha1, p[6] = alpha2 
+    // p[1]=r1, p[2] = r2, p[3] = alpha11, p[4] = alpha21, p[5] = alpha12, p[6] = alpha22 
     real dNdt[2]; 
-    dNdt[1] = p[1]*N[1]*(1 - (N[1] + p[5]*N[2])/p[3]);
-    dNdt[2] = p[2]*N[2]*(1 - (p[6]*N[1] + N[2])/p[4]);
+    dNdt[1] = p[1]*N[1] - p[3]*N[1] - p[4]*N[2];
+    dNdt[2] = p[2]*N[2] - p[5]*N[1] - p[6]*N[2];
     return dNdt;
   }
 }
@@ -33,10 +33,10 @@ data{
 parameters{
   real<lower=0> r1; // growth rate
   real<lower=0> r2; // growth rate
-  real<lower=0> K1; // carrying capacity
-  real<lower=0> K2; // carrying capacity
-  real<lower=0> alpha1; // comp term
-  real<lower=0> alpha2; // comp term
+  real<lower=0> alpha11; // density dependence species 1
+  real<lower=0> alpha21; // density dependence species 2 on 1
+  real<lower=0> alpha12; // density dependence species 1 on 2
+  real<lower=0> alpha22; // density dependence species 2
   real<lower=0> n10sim; // initial density n1
   real<lower=0> n20sim; // initial density n2
   real<lower=0> sdev1;
@@ -50,10 +50,10 @@ model{
   // priors 
   r1 ~ lognormal(-0.5,1);
   r2 ~ lognormal(-0.5,1);
-  K1 ~ lognormal(5, 1);
-  K2 ~ lognormal(9, 1);
-  alpha1 ~ lognormal(0.1,1);
-  alpha2 ~ lognormal(0.1,1);
+  alpha11 ~ lognormal(0.1, 1);
+  alpha21 ~ lognormal(0.1, 1);
+  alpha12 ~ lognormal(0.1, 1);
+  alpha22 ~ lognormal(0.1, 1);
   n10sim ~ normal(n1[1],30);
   n20sim ~ normal(n2[1],300);
   sdev1 ~ gamma(1, 5);
@@ -62,10 +62,10 @@ model{
   // parameters for integrator
   p[1] = r1;
   p[2] = r2;
-  p[3] = K1;
-  p[4] = K2;
-  p[5] = alpha1;
-  p[6] = alpha2;
+  p[3] = alpha11;
+  p[4] = alpha21;
+  p[5] = alpha12;
+  p[6] = alpha22;
 
   // integrate ODE
   simval = integrate_ode_rk45(odemodel, {n10sim, n20sim}, t[1], t[2:n], p, rep_array(0.0,0), rep_array(0,0));
