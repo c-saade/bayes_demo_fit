@@ -48,14 +48,14 @@ model{
   real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2 (S = 1, I = 2)
   
   // priors 
-  r1 ~ lognormal(-0.5,1);
-  r2 ~ lognormal(-0.5,1);
-  K1 ~ lognormal(5, 1);
-  K2 ~ lognormal(9, 1);
-  alpha1 ~ lognormal(0.1,1);
-  alpha2 ~ lognormal(0.1,1);
-  n10sim ~ normal(n1[1],30);
-  n20sim ~ normal(n2[1],300);
+  r1 ~ lognormal(-3,1);
+  r2 ~ lognormal(-2,1);
+  K1 ~ lognormal(5, 0.8);
+  K2 ~ lognormal(8, 0.5);
+  alpha1 ~ lognormal(-3,1);
+  alpha2 ~ lognormal(2.5,1);
+  n10sim ~ normal(n1[1],5);
+  n20sim ~ normal(n2[1],10);
   sdev1 ~ gamma(1, 1);
   sdev2 ~ gamma(1, 1);
   
@@ -114,8 +114,8 @@ chains = 3
 rstan_options(auto_write = TRUE)
 options(mc.cores = chains)
 
-iter   =  2000
-warmup =  1000
+iter   =  1000
+warmup =  200
 thin   =     1
 
 # initial values for sampling 
@@ -126,9 +126,9 @@ init=rep(list(list(r1=0.01,
                    alpha1 = 1,
                    alpha2 = 1,
                    n10sim=5,
-                   n20sim=100,
-                   sdev1 = 10,
-                   sdev2 = 100
+                   n20sim=500,
+                   sdev1 = 1,
+                   sdev2 = 1
 ))
 ,chains)
 
