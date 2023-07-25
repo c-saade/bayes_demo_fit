@@ -39,7 +39,8 @@ parameters{
   real<lower=0> alpha2; // comp term
   real<lower=0> n10sim; // initial density n1
   real<lower=0> n20sim; // initial density n2
-  real<lower=0> sdev;
+  real<lower=0> sdev1;
+  real<lower=0> sdev2;
 }
 
 model{
@@ -49,13 +50,14 @@ model{
   // priors 
   r1 ~ lognormal(-0.5,1);
   r2 ~ lognormal(-0.5,1);
-  K1 ~ lognormal(5.5, 1);
-  K2 ~ lognormal(5.5, 1);
-  alpha1 ~ lognormal(0.5,1);
-  alpha2 ~ lognormal(0.5,1);
+  K1 ~ lognormal(5, 1);
+  K2 ~ lognormal(9, 1);
+  alpha1 ~ lognormal(0.1,1);
+  alpha2 ~ lognormal(0.1,1);
   n10sim ~ normal(n1[1],30);
   n20sim ~ normal(n2[1],300);
-  sdev ~ gamma(2,0.1);
+  sdev1 ~ gamma(1, 5);
+  sdev2 ~ gamma(1, 5);
   
   // parameters for integrator
   p[1] = r1;
@@ -68,11 +70,11 @@ model{
   // integrate ODE
   simval = integrate_ode_rk45(odemodel, {n10sim, n20sim}, t[1], t[2:n], p, rep_array(0.0,0), rep_array(0,0));
   // likelihood
-  n1[1] ~ normal(n10sim, sdev);
-  n2[1] ~ normal(n20sim, sdev);
+  n1[1] ~ normal(n10sim, sdev1);
+  n2[1] ~ normal(n20sim, sdev2);
   for (i in 2:n){
-    n1[i] ~ normal(simval[i-1, 1], sdev);
-    n2[i] ~ normal(simval[i-1, 2], sdev);
+    n1[i] ~ normal(simval[i-1, 1], sdev1);
+    n2[i] ~ normal(simval[i-1, 2], sdev2);
   }
 }
 
@@ -119,13 +121,14 @@ thin   =     1
 # initial values for sampling 
 init=rep(list(list(r1=0.01,
                    r2=0.1,
-                   K1 = 300,
+                   K1 = 150,
                    K2 = 4000,
                    alpha1 = 1,
                    alpha2 = 1,
                    n10sim=5,
                    n20sim=100,
-                   sdev=1
+                   sdev1 = 10,
+                   sdev2 = 100
 ))
 ,chains)
 
