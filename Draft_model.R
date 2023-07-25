@@ -17,8 +17,8 @@ functions{
   real[] odemodel(real t, real[] N, real[] p, real[] x_r, int[] x_i){
     // p[1]=r1, p[2] = r2, p[3] = alpha11, p[4] = alpha21, p[5] = alpha12, p[6] = alpha22 
     real dNdt[2]; 
-    dNdt[1] = p[1]*N[1] - p[3]*N[1] - p[4]*N[2];
-    dNdt[2] = p[2]*N[2] - p[5]*N[1] - p[6]*N[2];
+    dNdt[1] = p[1]*N[1] - p[3]*N[1]**2 - p[4]*N[2]**2;
+    dNdt[2] = p[2]*N[2] - p[5]*N[1]**2 - p[6]*N[2]**2;
     return dNdt;
   }
 }
