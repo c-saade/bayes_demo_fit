@@ -56,8 +56,8 @@ model{
   alpha2 ~ lognormal(0.1,1);
   n10sim ~ normal(n1[1],30);
   n20sim ~ normal(n2[1],300);
-  sdev1 ~ gamma(1, 5);
-  sdev2 ~ gamma(1, 5);
+  sdev1 ~ gamma(1, 1);
+  sdev2 ~ gamma(1, 1);
   
   // parameters for integrator
   p[1] = r1;
@@ -114,8 +114,8 @@ chains = 3
 rstan_options(auto_write = TRUE)
 options(mc.cores = chains)
 
-iter   =  10000
-warmup =  2000
+iter   =  2000
+warmup =  1000
 thin   =     1
 
 # initial values for sampling 
@@ -151,7 +151,7 @@ save(fit_obs, file="./out/fit_posterior.RData")
 
 print(fit_obs)
 
-samples=As.mcmc.list(fit)
+samples=As.mcmc.list(fit_obs)
 params = c("r1","r2", "K1", "K2", "alpha1", "alpha2")
 plot(samples[, params])
 
