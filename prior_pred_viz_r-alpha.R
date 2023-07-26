@@ -34,16 +34,16 @@ draw_random_parameters = function(){
   params = list()
   params['r1'] = rlnorm(1, -3, 1)
   params['r2'] = rlnorm(1, -2, 1)
-  params['alpha11'] = rlnorm(1, -9, 1)
-  params['alpha21'] = rlnorm(1, -9, 1)
-  params['alpha12'] = rlnorm(1, -8, 1)
-  params['alpha22'] = rlnorm(1, -8, 1)
+  params['alpha11'] = rlnorm(1, -7, 1)
+  params['alpha21'] = rlnorm(1, -12, 1)
+  params['alpha12'] = rlnorm(1, -7, 1)
+  params['alpha22'] = rlnorm(1, -10, 1)
   params['n10sim'] = abs(rnorm(1, 1.64,5))
   params['n20sim'] = rnorm(1, 510,10)
   return(params)
 }
 
-n_prior_pred = 1000
+n_prior_pred = 200
 times = seq(min(filtered_data$t), max(filtered_data$t), length.out = 200)
 for (k in 1:n_prior_pred){
   print(k)
@@ -73,7 +73,7 @@ ggplot(filtered_data) +
 
 ggplot(filtered_data) +
   geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
-  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  geom_point(mapping = aes(x = t, y = n2/10), color = 'red') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
@@ -81,11 +81,11 @@ ggplot(filtered_data) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun = median,
                geom = 'line', color = 'blue') +
-  stat_summary(data = predictions, mapping = aes(x = time, y = n2),
+  stat_summary(data = predictions, mapping = aes(x = time, y = n2/10),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
                geom = 'ribbon', fill = 'red', alpha = 0.2) +
-  stat_summary(data = predictions, mapping = aes(x = time, y = n2),
+  stat_summary(data = predictions, mapping = aes(x = time, y = n2/10),
                fun = median,
                geom = 'line', color = 'red') +
   theme_classic()

@@ -50,10 +50,10 @@ model{
   // priors 
   r1 ~ lognormal(-3,1);
   r2 ~ lognormal(-2,1);
-  alpha11 ~ lognormal(-9, 1);
-  alpha21 ~ lognormal(-9, 1);
-  alpha12 ~ lognormal(-8, 1);
-  alpha22 ~ lognormal(-8, 1);
+  alpha11 ~ lognormal(-7, 1);
+  alpha21 ~ lognormal(-12, 1);
+  alpha12 ~ lognormal(-7, 1);
+  alpha22 ~ lognormal(-10, 1);
   n10sim ~ normal(n1[1],5);
   n20sim ~ normal(n2[1],10);
   sdev1 ~ gamma(1, 1);
@@ -114,19 +114,19 @@ chains = 3
 rstan_options(auto_write = TRUE)
 options(mc.cores = chains)
 
-iter   =  1000
-warmup =  200
+iter   =  10000
+warmup =  2000
 thin   =     1
 
 # initial values for sampling 
 init=rep(list(list(r1=0.01,
                    r2=0.1,
-                   alpha11 = 10^-4,
-                   alpha21 = 10^-4,
-                   alpha12 = 10^-3,
+                   alpha11 = 10^-3,
+                   alpha21 = 10^-3,
+                   alpha12 = 10^-5,
                    alpha21 = 10^-3,
                    n10sim=5,
-                   n20sim=100,
+                   n20sim=500,
                    sdev1 = 1,
                    sdev2 = 1
 ))
@@ -151,8 +151,8 @@ save(fit_obs, file="./out/fit_posterior.RData")
 
 print(fit_obs)
 
-samples=As.mcmc.list(fit)
-params = c("r1","r2", "alpha11", "alpha21", "alpha12", "alpha21")
+samples=As.mcmc.list(fit_obs)
+params = c("r1","r2", "alpha11", "alpha21", "alpha12", "alpha22")
 plot(samples[, params])
 
 pairs(fit_obs, pars=params)
