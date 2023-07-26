@@ -114,8 +114,8 @@ chains = 3
 rstan_options(auto_write = TRUE)
 options(mc.cores = chains)
 
-iter   =  1000
-warmup =  200
+iter   =  10000
+warmup =  2000
 thin   =     1
 
 # initial values for sampling 
