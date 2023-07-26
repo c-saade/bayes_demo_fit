@@ -152,7 +152,7 @@ save(fit_obs, file="./out/fit_posterior.RData")
 print(fit_obs)
 
 samples=As.mcmc.list(fit)
-params = c("r1","r2", "K1", "K2", "alpha1", "alpha2")
+params = c("r1","r2", "alpha11", "alpha21", "alpha12", "alpha21")
 plot(samples[, params])
 
 pairs(fit_obs, pars=params)
@@ -160,12 +160,12 @@ pairs(fit_obs, pars=params)
 ode.model = function(t,N,p){
   r1 = p$r1
   r2 = p$r2
-  K1 = p$K1
-  K2 = p$K2
-  alpha1 = p$alpha1
-  alpha2 = p$alpha2
-  dn1 = r1*N[1]*(1-(N[1]+alpha1*N[2])/K1)
-  dn2 = r2*N[2]*(1-(alpha2*N[1]+N[2])/K2)
+  alpha11 = p$alpha11
+  alpha21 = p$alpha21
+  alpha12 = p$alpha12
+  alpha22 = p$alpha21
+  dn1 = r1*N[1] - alpha11*N[1]**2 - alpha21*N[1]*N[2]
+  dn2 = r2*N[2] - alpha12*N[1]*N[2] - alpha22*N[2]**2
   return(list(c(dn1, dn2)))
 }
 
@@ -179,10 +179,10 @@ for (k in 1:n_post){
   sim = ode(c(par['n10sim'], par['n20sim']),
             times, ode.model, list(r1 = par['r1'],
                                    r2= par['r2'],
-                                   K1 = par['K1'],
-                                   K2 = par['K2'],
-                                   alpha1 = par['alpha1'],
-                                   alpha2 = par['alpha2']),
+                                   alpha11 = par['alpha11'],
+                                   alpha21 = par['alpha21'],
+                                   alpha12 = par['alpha12'],
+                                   alpha22 = par['alpha22']),
             method = 'ode45')
   
   temp  = data.frame(time = sim[,1], n1 = sim[,2], n2 = sim[,3], id = k)
