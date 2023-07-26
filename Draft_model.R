@@ -48,16 +48,16 @@ model{
   real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2 (S = 1, I = 2)
   
   // priors 
-  r1 ~ lognormal(-0.5,1);
-  r2 ~ lognormal(-0.5,1);
-  alpha11 ~ lognormal(0.1, 1);
-  alpha21 ~ lognormal(0.1, 1);
-  alpha12 ~ lognormal(0.1, 1);
-  alpha22 ~ lognormal(0.1, 1);
-  n10sim ~ normal(n1[1],30);
-  n20sim ~ normal(n2[1],300);
-  sdev1 ~ gamma(1, 5);
-  sdev2 ~ gamma(1, 5);
+  r1 ~ lognormal(-3,1);
+  r2 ~ lognormal(-2,1);
+  alpha11 ~ lognormal(-9, 1);
+  alpha21 ~ lognormal(-9, 1);
+  alpha12 ~ lognormal(-8, 1);
+  alpha22 ~ lognormal(-8, 1);
+  n10sim ~ normal(n1[1],5);
+  n20sim ~ normal(n2[1],10);
+  sdev1 ~ gamma(1, 1);
+  sdev2 ~ gamma(1, 1);
   
   // parameters for integrator
   p[1] = r1;
@@ -114,8 +114,8 @@ chains = 3
 rstan_options(auto_write = TRUE)
 options(mc.cores = chains)
 
-iter   =  10000
-warmup =  2000
+iter   =  1000
+warmup =  200
 thin   =     1
 
 # initial values for sampling 
