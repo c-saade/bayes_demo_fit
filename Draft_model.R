@@ -121,14 +121,14 @@ thin   =     1
 # initial values for sampling 
 init=rep(list(list(r1=0.01,
                    r2=0.1,
-                   K1 = 150,
-                   K2 = 4000,
-                   alpha1 = 1,
-                   alpha2 = 1,
+                   alpha11 = 10^-4,
+                   alpha21 = 10^-4,
+                   alpha12 = 10^-3,
+                   alpha21 = 10^-3,
                    n10sim=5,
                    n20sim=100,
-                   sdev1 = 10,
-                   sdev2 = 100
+                   sdev1 = 1,
+                   sdev2 = 1
 ))
 ,chains)
 
