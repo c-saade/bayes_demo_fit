@@ -1,16 +1,60 @@
-## A stan model using mono, bi and trispecific time series to fit demographic parameters on Tet, Col and Ble.
+## Draft model ##
+# A standalone R-script to fit and diagnose a demographic model
+# (competitive Lotka-Volterra) to experimental bi-specific data.
 
+# Cleaning environment
 rm(list=ls())
 
-# load packages ##############################################################
+# loading packages ############################################################
+
+# data wrangling
+library(dplyr)
+
+# figures
+library(ggplot2)
+theme_set(theme_light())
+library(ggpubr)
+
+# models
 library(rstan)
 library(deSolve)
 library(coda)
-library(dplyr)
 
-dir.create("out", showWarnings = FALSE) ## create a directory to store outputs
+dir.create("out", showWarnings = FALSE) # creating a directory to store the outputs
 
-## Declare Stan model ########################################################
+# Loading and preparing data ######################################################
+
+density_data = read.table("./Data/density_data.csv", header = T, sep = ',')
+
+# filtering the data
+filtered_data <- 
+  density_data %>%
+  filter(community == 'Ble_Tet') %>% # keeping only the bi-specific time series (Blepharisma sp. + Tetrahymena sp.)
+  select(c(measure_point, hours, Ble, Tet)) %>% # keeping only time variables and species densities
+  group_by(measure_point) %>% # averaging each measurement over replicates
+  summarise(t = mean(hours), n1 = mean(Ble), n2 = mean(Tet)) %>%
+  arrange(t)
+
+# taking a look at the time series
+panel_a = ggplot(data = filtered_data) +
+  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+  xlab('Time (h)') +
+  ylab('Density of Blepharisma sp. (indiv./mL)')
+
+panel_b = ggplot(data = filtered_data) +
+  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  xlab('Time (h)') +
+  ylab('Density of Tetrahymena sp. (indiv./mL)')
+
+ggsave(('out/time_series.pdf'), ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
+
+# turning data into a list to give to the Rstan sampler.
+data = list(n  = nrow(filtered_data), # number of observations
+            t = filtered_data$t, # vector of times
+            n1 = filtered_data$n1, # vector of density of species 1 (Ble)
+            n2 = filtered_data$n2) # vector of density of species 2 (Tet)
+
+## Declaring and compiling Stan model ###################################################
 
 model_str = '
 functions{
@@ -82,41 +126,19 @@ generated quantities{
 }
 '
 
-s_model = stan_model(model_code=model_str) ## compiling the model
+# compiling the model
+model = stan_model(model_code=model_str)
 
 
-density_data = read.table("./Data/density_data.csv", header = T, sep = ',') ## reading data
-
-filtered_data <- 
-density_data %>%
-  filter(community == 'Ble_Tet') %>%
-  select(c(measure_point, hours, Ble, Tet)) %>%
-  group_by(measure_point) %>%
-  summarise(t = mean(hours), n1 = mean(Ble), n2 = mean(Tet)) %>%
-  arrange(t)
-
-ggplot(data = filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1))
-
-ggplot(data = filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2))
-
-
-data = list(n  = nrow(filtered_data),
-            
-            t = filtered_data$t,
-            
-            n1 = filtered_data$n1,
-            n2 = filtered_data$n2)
+# Declaring model options and initial conditions ##################################
 
 # stan options
-chains = 3
-rstan_options(auto_write = TRUE)
-options(mc.cores = chains)
+chains = 3 # number of parallel chains
+options(mc.cores = chains) # number of core used (check that you have at least 3)
 
+# number of total iterations and warm-up steps
 iter   =  10000
 warmup =  2000
-thin   =     1
 
 # initial values for sampling 
 init=rep(list(list(r1=0.01,
@@ -133,30 +155,47 @@ init=rep(list(list(r1=0.01,
 ,chains)
 
 
-# run model and print result
-fit_obs = sampling(s_model,
-                   data=data,
-                   iter=iter,
-                   warmup=warmup,
-                  thin=thin,
+# Fitting model ####################################################################
+
+# Note that the fit can take some time, depending on your hardware.
+# You can skip the fitting by commenting out the next two commands
+# ('fit_obs = sampling...' and 'save(fit_obs...)') and uncommenting
+# load("./out/fit_posterior.RData")
+
+fit_obs = sampling(model,
+                  data=data,
+                  iter=iter,
+                  warmup=warmup,
                   chains=chains,
                   init=init,
                   control = list(adapt_delta = 0.9, max_treedepth=12),
                   refresh=10
 )
- 
+
 save(fit_obs, file="./out/fit_posterior.RData")
 
 #load("./out/fit_posterior.RData")
 
+# Model diagnostics #############################################################
+params = c("r1","r2", "K1", "K2", "alpha1", "alpha2")
+
+# Checking posterior properties (rhat should be as close to 1 as possible)
 print(fit_obs)
 
+# saving a plot of the chains
 samples=As.mcmc.list(fit_obs)
-params = c("r1","r2", "K1", "K2", "alpha1", "alpha2")
+pdf('out/chains.pdf')
 plot(samples[, params])
+dev.off()
 
+# saving pair plot of parameters
+pdf('out/pair.pdf')
 pairs(fit_obs, pars=params)
+dev.off()
 
+## Posterior predictions  ####################################################
+
+# declaring the lotka-volterra model
 ode.model = function(t,N,p){
   r1 = p$r1
   r2 = p$r2
@@ -170,10 +209,11 @@ ode.model = function(t,N,p){
 }
 
 
-posteriors = as.matrix(fit_obs)
-
+# sampling 1000 values from the posterior distribution and
+# computing the predicted dynamics for each
 n_post = 1000
 times = seq(min(data$t), max(data$t), length.out = 200)
+posteriors = as.matrix(fit_obs)
 for (k in 1:n_post){
   par = posteriors[sample(1:nrow(posteriors), 1),]
   sim = ode(c(par['n10sim'], par['n20sim']),
@@ -195,17 +235,24 @@ for (k in 1:n_post){
   
 }
 
-
-ggplot(filtered_data) +
+# plotting the 1000 predictions over the data
+panel_a = ggplot(filtered_data) +
   geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
-  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
   geom_line(data = predictions, mapping = aes(x = time, y = n1, group = id), color = 'blue', alpha = 0.01) +
-  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = 'red', alpha = 0.01) +
-  theme_classic()
+  xlab('') +
+  ylab('Density of Blepharisma sp. (indiv./mL)')
 
-ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+panel_b = ggplot(filtered_data) +
   geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = 'red', alpha = 0.01) +
+  xlab('Time (h)') +
+  ylab('Density of Tetrahymena sp. (indiv./mL)')
+
+ggsave('posterior_predictions.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
+
+# plotting the median and 90% quantiles
+panel_a = ggplot(filtered_data) +
+  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
@@ -213,6 +260,11 @@ ggplot(filtered_data) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun = median,
                geom = 'line', color = 'blue') +
+  xlab('') +
+  ylab('Density of Blepharisma sp. (indiv./mL)')
+
+panel_b = ggplot(filtered_data) +
+  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
@@ -220,4 +272,7 @@ ggplot(filtered_data) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun = median,
                geom = 'line', color = 'red') +
-  theme_classic()
+  xlab('Time (h)') +
+  ylab('Density of Tetrahymena sp. (indiv./mL)')
+
+ggsave('posterior_predictions_quantiles.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
