@@ -248,7 +248,7 @@ panel_b = ggplot(filtered_data) +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
-ggsave('posterior_predictions.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
+ggsave('out/posterior_predictions.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
 
 # plotting the median and 90% quantiles
 panel_a = ggplot(filtered_data) +
@@ -275,4 +275,4 @@ panel_b = ggplot(filtered_data) +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
-ggsave('posterior_predictions_quantiles.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
+ggsave('out/posterior_predictions_quantiles.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
