@@ -1,0 +1,78 @@
+---
+title: "Unraveling Time Series with RStan: A Bayesian Approach to Demographic Modeling"
+author: "Camille Saade"
+date: '2023-07-27'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Demographic models are an invaluable tool in ecology, as they offer insights into the dynamics of species over time.
+By estimating ecologically relevant parameters - such as growth rates and competition strength - these models shed light on complex ecological systems and eventually to predict their future dynamics or produce in-silico experiments.
+
+However, fitting these models can be quite complex and using them for prediction requires robust parameter estimation for prediction purpose.
+In particular, traditional frequentist approaches often lack the flexibility to accomodate complex models and they offer point estimates which risk missing identifiability issues.
+Bayesian approaches on the other hand, are well suited to estimate parameter distributions and allow to identify pathological correlations between parameters at a glance.
+
+In this article, we will use RStan - a bayesian statistical R package - to analyze time series of two interacting species and find out the mechanisms underlying their dynamics.
+
+## Data
+
+We will be using the data from one of my [research papers](https://doi.org/10.1098/rspb.2022.0543), in which I fitted a demographic model to the dynamics of three interacting species.
+The inferred parameters then allowed me to reproduce the original microcosm experiment in-silico.
+Let us first load the data:
+
+```{r}
+density_data = read.csv("./Data/density_data.csv", header = T, sep = ',')
+head(density_data, 10)
+```
+
+
+
+```{r}
+library(tidyverse)
+theme_set(theme_light())
+density_data %>%
+  mutate(Ble = na_if(Ble, 0)) %>%
+  mutate(Col = na_if(Col, 0)) %>%
+  mutate(Tet = na_if(Tet, 0)) %>%
+  mutate(Pca = na_if(Pca, 0)) %>%
+  pivot_longer(cols = c("Ble", "Col", "Tet", "Pca"),
+               names_to = "species",
+               values_to = "density") %>%
+  ggplot() +
+  geom_point(mapping = aes(x = hours, y = density, color = species)) +
+  scale_y_continuous(trans='log2') +
+  facet_wrap(community ~ .) +
+  ylab('Species density (log2(indiv./mL))') +
+  xlab('Time (h)')
+```
+```{r}
+filtered_data <- 
+  density_data %>%
+  filter(community == 'Ble_Tet') %>% # keeping only the bi-specific time series (Blepharisma sp. + Tetrahymena sp.)
+  select(c(measure_point, hours, Ble, Tet)) %>% # keeping only time variables and species densities
+  group_by(measure_point) %>% # averaging each measurement over replicates
+  summarise(t = mean(hours), n1 = mean(Ble), n2 = mean(Tet)) %>%
+  arrange(t)
+```
+
+```{r}
+library(ggpubr)
+
+panel_a = ggplot(data = filtered_data) +
+  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+  xlab('Time (h)') +
+  ylab('Density of Blepharisma sp. (indiv./mL)')
+
+panel_b = ggplot(data = filtered_data) +
+  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  xlab('Time (h)') +
+  ylab('Density of Tetrahymena sp. (indiv./mL)')
+
+ggarrange(panel_a, panel_b, nrow = 2)
+```
