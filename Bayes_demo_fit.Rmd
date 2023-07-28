@@ -27,7 +27,9 @@ In this article, we will use RStan - a bayesian statistical R package - to analy
 In one of my [research projects](https://doi.org/10.1098/rspb.2022.0543) I studied ecosystems recovery dynamics using microcosms - _i.e._, small laboratory ecosystems made up of microorganisms.
 To overcome laboratory limitations of experiment duration and ecosystem size, I also reproduced and expanded the experiment _in silico_.
 To get a robust parameterization of the simulations, I fitted a demographic model to preliminary data.
-Let us work with this preliminary data, consisting of growth curves of several unicellular species in isolation and in co-culture: 
+We will work with this preliminary data, consisting of growth curves of several unicellular species in isolation and in co-culture.
+All species feed on the same resource and are thus in competition when grown together.
+Let's first load and inspect the data:
 
 ```{r}
 density_data = read.csv("./Data/density_data.csv", header = T, sep = ',')
@@ -54,6 +56,7 @@ Here is a summary of the columns content:
 
 Let us take a look at the data:
 ```{r, warning=FALSE, message = FALSE}
+# plotting the whole data
 library(tidyverse)
 theme_set(theme_light())
 density_data %>%
@@ -79,6 +82,7 @@ If you wish to explore how to take advantage of monocultures, tri-cultures and r
 Let's filter the data and average across replicates:
 
 ```{r}
+# filtering data
 filtered_data <- 
   density_data %>%
   filter(community == 'Ble_Tet') %>% # keeping only the bi-specific time series (Blepharisma sp. + Tetrahymena sp.)
@@ -89,6 +93,7 @@ filtered_data <-
 ```
 
 ```{r}
+# plotting the resulting data
 library(ggpubr)
 
 panel_a = ggplot(data = filtered_data) +
@@ -104,8 +109,12 @@ panel_b = ggplot(data = filtered_data) +
 ggarrange(panel_a, panel_b, nrow = 2)
 ```
 
-We end up with a single time series for _Blepharisma_ sp. (blue) and for _Tetrahymena_ sp. (red), which is much more manageable in the context of this guide. 
-The last thing we want to do is transform this data into a list that is manageable by Rstan:
+We end up with a single time series for _Blepharisma_ sp. (blue) and for _Tetrahymena_ sp. (red), which is much more manageable in the context of this guide.
+For now we can only describe the dynamics verbally: the population _Tetrahymena thermophila_ grows very fast, reaching a fairly high density of 6000 individuals per mL under 100 hours, before crashing down as the population of _Blepharisma_ sp. grow.
+On the opposite, the population of _Blepharisma_ sp. grows fairly slowly, seemingly reaching an equilibrium density of 150 individuals per mL in over 200 hours.
+Fitting a demographic model onto this data would allow us to numerically quantify these observations as well as unobservable quantities such as competition rates.
+
+Before delving into the model specifics, the last thing we want to do is transform this data into a list that is manageable by Rstan:
 
 ```{r}
 # turning data into a list to give to the Rstan sampler.
@@ -115,4 +124,33 @@ data = list(n  = nrow(filtered_data), # number of observations
             n2 = filtered_data$n2) # vector of density of species 2 (Tet)
 ```
 
+## Demographic model
 
+Species dynamics in ecology are often described using differential equations describe the instantaneous growth rate as a function of the species density.
+The go-to model to describe the dynamics of two species in competition is the [competitive Lotka-Volterra model](https://en.wikipedia.org/wiki/Competitive_Lotka%E2%80%93Volterra_equations):
+
+$$
+\begin{aligned}
+\dfrac{dn_1}{dt} = r_1 n_1 \left(1 - \dfrac{n_1 + \alpha_1 n_2}{K_1} \right)\\
+\dfrac{dn_2}{dt} = r_2 n_2 \left(1 - \dfrac{n_2 + \alpha_2 n_1}{K_2} \right)
+\end{aligned}
+$$
+With the following variables:
+
+  - $t$, the time.
+  - $n_1$ and $n_2$, the densities of species 1 and 2.
+  
+And the following parameters
+
+  - $r_1$ and $r_2$, the growth rates of species 1 and 2.
+  - $K_1$ and $K_2$, the carrying capacities of species 1 and 2 (_i.e._, their equilibrium density when grown in isolation).
+  - $\alpha_1$ and $\alpha_2$, the competition rates: $\alpha_1$ measures the effect that an individual of species 2 has on the growth of species 1 and conversely.
+$\alpha_1 \sim 0$ would mean that species 2 has no effect on species 1 (_e.g._, if species 1 is way more efficient than species 2, or if the two species do not compete for the same resource).
+$\alpha_1 \sim 1$ would mean that the two species are competitively equivalent.
+$\alpha_1 > 1$ would mean that species 2 has a strong negative effect on the growth of species 1.
+
+## Stan implementation
+
+## Model diagnostic
+
+## Posterior predictions
