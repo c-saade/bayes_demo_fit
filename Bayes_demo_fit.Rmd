@@ -2,7 +2,9 @@
 title: "Unraveling Time Series with RStan: A Bayesian Approach to Demographic Modeling"
 author: "Camille Saade"
 date: '2023-07-27'
-output: html_document
+output:
+  html_document:
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -22,35 +24,60 @@ In this article, we will use RStan - a bayesian statistical R package - to analy
 
 ## Data
 
-We will be using the data from one of my [research papers](https://doi.org/10.1098/rspb.2022.0543), in which I fitted a demographic model to the dynamics of three interacting species.
-The inferred parameters then allowed me to reproduce the original microcosm experiment in-silico.
-Let us first load the data:
+In one of my [research projects](https://doi.org/10.1098/rspb.2022.0543) I studied ecosystems recovery dynamics using microcosms - _i.e._, small laboratory ecosystems made up of microorganisms.
+To overcome laboratory limitations of experiment duration and ecosystem size, I also reproduced and expanded the experiment _in silico_.
+To get a robust parameterization of the simulations, I fitted a demographic model to preliminary data.
+Let us work with this preliminary data, consisting of growth curves of several unicellular species in isolation and in co-culture: 
 
 ```{r}
 density_data = read.csv("./Data/density_data.csv", header = T, sep = ',')
 head(density_data, 10)
 ```
 
+Each line contains the density (individuals/mL) of each species in one of the tubes (identified by the column 'file') at a given point in time (given either by the columns 'date' and 'time' or by the column 'hours').
+Each species association ('community') was replicated three times, and replicates are differentiated using the 'replicate' column.
+The columns 'Tet', 'Pca', 'Ble' and 'Col' describe the density of four unicellular species, respectively _Tetrahymena thermophila_, _Paramecium caudatum_, _Colpidium_ sp. and _Blepharisma_ sp.
 
+Here is a summary of the columns content:
 
-```{r}
+  - "file": the name of the video sample used for species count and identification, serves as a unique id for each tube.
+  - "date": date at which the sample was taken (yyyy-mm-dd).
+  - "time": the time of day at which the sample was taken (hour).
+  - "community": the species grown in a tube.
+  - "replicate": the replicate number.
+  - "measure_point": the number of the measurement (t0 to t11)
+  - "Tet": the density (individuals/mL) of _Tetrahymena thermophila_
+  - "Pca": the density (individuals/mL) of _Paramecium caudatum_ (a species initially considered in the pilot, not used in the final study)
+  - "Col": the density (individuals/mL) of _Colpidium_ sp.
+  - "Ble": the density (individuals/mL) of _Blepharisma_ sp.
+  - "hours": the time passed since the beginning of the culture (in hours).
+
+Let us take a look at the data:
+```{r, warning=FALSE, message = FALSE}
 library(tidyverse)
 theme_set(theme_light())
 density_data %>%
-  mutate(Ble = na_if(Ble, 0)) %>%
-  mutate(Col = na_if(Col, 0)) %>%
-  mutate(Tet = na_if(Tet, 0)) %>%
-  mutate(Pca = na_if(Pca, 0)) %>%
+  mutate(Ble = replace(Ble, !grepl('Ble', community), NA)) %>%
+  mutate(Col = replace(Col, !grepl('Col', community), NA)) %>%
+  mutate(Tet = replace(Tet, !grepl('Tet', community), NA)) %>%
+  mutate(Pca = replace(Pca, !grepl('Pca', community), NA)) %>%
   pivot_longer(cols = c("Ble", "Col", "Tet", "Pca"),
                names_to = "species",
                values_to = "density") %>%
   ggplot() +
   geom_point(mapping = aes(x = hours, y = density, color = species)) +
+  geom_line(mapping = aes(x = hours, y = density, color = species, group = interaction(species, replicate)), alpha = 0.5) +
   scale_y_continuous(trans='log2') +
   facet_wrap(community ~ .) +
   ylab('Species density (log2(indiv./mL))') +
   xlab('Time (h)')
 ```
+We show here the density (on a log scale) over time of species for each species combination.
+This makes a large data set on which to fit a single model.
+For the sake of simplicity, we will work only on a subset of the data: the co-culture of _Blepharisma_ sp. and _Tetrahymena_ sp., and we will average the data across replicates.
+If you wish to explore how to take advantage of monocultures, tri-cultures and replications, you can have a look into the papers [data and code](https://doi.org/10.5281/zenodo.6364903).
+Let's filter the data and average across replicates:
+
 ```{r}
 filtered_data <- 
   density_data %>%
@@ -58,7 +85,7 @@ filtered_data <-
   select(c(measure_point, hours, Ble, Tet)) %>% # keeping only time variables and species densities
   group_by(measure_point) %>% # averaging each measurement over replicates
   summarise(t = mean(hours), n1 = mean(Ble), n2 = mean(Tet)) %>%
-  arrange(t)
+  arrange(t) # sorting by time
 ```
 
 ```{r}
@@ -76,3 +103,16 @@ panel_b = ggplot(data = filtered_data) +
 
 ggarrange(panel_a, panel_b, nrow = 2)
 ```
+
+We end up with a single time series for _Blepharisma_ sp. (blue) and for _Tetrahymena_ sp. (red), which is much more manageable in the context of this guide. 
+The last thing we want to do is transform this data into a list that is manageable by Rstan:
+
+```{r}
+# turning data into a list to give to the Rstan sampler.
+data = list(n  = nrow(filtered_data), # number of observations
+            t = filtered_data$t, # vector of times
+            n1 = filtered_data$n1, # vector of density of species 1 (Ble)
+            n2 = filtered_data$n2) # vector of density of species 2 (Tet)
+```
+
+
