@@ -123,6 +123,8 @@ model{
 }
 
 generated quantities{
+  real r_ratio = r1/r2;
+  real alpha_ratio = alpha1/alpha2;
 }
 '
 
@@ -177,7 +179,7 @@ save(fit_obs, file="./out/fit_posterior.RData")
 #load("./out/fit_posterior.RData")
 
 # Model diagnostics #############################################################
-params = c("r1","r2", "K1", "K2", "alpha1", "alpha2")
+params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
 
 # Checking posterior properties (rhat should be as close to 1 as possible)
 print(fit_obs)
