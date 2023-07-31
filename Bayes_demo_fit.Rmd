@@ -156,11 +156,11 @@ We thus need to infer the 6 model parameters ($r_1$, $r_2$, $K_1$, $K_2$, $\alph
 We can specify the model in [stan's programming language](https://mc-stan.org/docs/reference-manual/index.html), a pseudo C language.
 We write the model as a string (or a text file) organized in several blocks:
 
-  - __functions__: to declare any utility functions necessary to the fit.
-  - __data__: to declare the structure (type, size...) of the data fed to the model.
-  - __parameters__: to declare the model parameters.
-  - __model__: to declare parameter priors and how to compute the likelyhood.
-  - __generated quantities__: to declare any quantity we want the sampler to compute along the way.
+  - ```functions```: to declare any utility functions necessary to the fit.
+  - ```data```: to declare the structure (type, size...) of the data fed to the model.
+  - ```parameters```: to declare the model parameters.
+  - ```model```: to declare parameter priors and how to compute the likelyhood.
+  - ```generated quantities```: to declare any quantity we want the sampler to compute along the way.
   
 ```{r}
 model_str = '
@@ -236,6 +236,9 @@ generated quantities{
 
 ### functions
 
+The only function we need here is a the ODE of the Lotka-Volterra model.
+At each step, the sample will use it to simulate the dynamics of a given set of parameters which will serve to compute the likelihood.
+
 ```{}
 functions{
   real[] odemodel(real t, real[] N, real[] p, real[] x_r, int[] x_i){
@@ -252,6 +255,12 @@ functions{
 
 ### data
 
+Here we declare the data that we will give to the sampler:
+
+  - ```n``` is an integer describing the number of observations, which we need to declare the length of the data vectors.
+  - ```t``` it the vector of times, in hours.
+  - ```n1``` and ```n2``` are the vectors of species densities.
+  
 ```{}
 data{
   int n; // number of observations
@@ -264,6 +273,13 @@ data{
 
 
 ### parameters
+
+Here we declare the model parameters, _i.e._, the quantities that the sampler need to estimate:
+  
+  - the ```r```'s, ```K```'s and ```alpha```'s are the parameters for the Lotka-Volterra model
+  - ```n10sim``` and ```n_20sim``` are the initial densities of both species. As stated above, they need to be estimated as parameters to avoid propagating the error from erroneous measures of the initial conditions.
+  - ```sdev1``` and ```sdev2``` are parameters for the residual distribution of species 1 and 2.
+  
 
 ```{}
 parameters{
@@ -283,11 +299,22 @@ parameters{
 
 ### model
 
+Finally, we can write the bulk of the model.
+This block is used to declare how to compute the likelyhood from a given set of parameters.
+To do so, we need to declare the parameters prior distributions, to write down how to simulate dynamics and finally how to compute likelyhood from simulated dynamics and data.
+
+We first declare the variables that will be used in this block.
+We need to declare a vector ```p``` to feed the parameters of the Lotka-Volterra model to rstan's integrator.
+```simval``` is the vector in which we will store the outpout of the numerical integration. It is of length ```n-1``` because the initial conditions are estimated as a parameter, and of width 2 to store the densities of both species.
 ```{}
 model{
   real p[6]; // vector of parameters for the ODE
   real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2 (S = 1, I = 2)
-  
+```
+
+
+We then declare a prior distribution of all parameters.
+```{}
   // priors 
   r1 ~ lognormal(-3,1);
   r2 ~ lognormal(-2,1);
@@ -299,7 +326,10 @@ model{
   n20sim ~ normal(n2[1],10);
   sdev1 ~ gamma(1, 1);
   sdev2 ~ gamma(1, 1);
-  
+```  
+
+We fill in the vector ```p```.
+```{}
   // parameters for integrator
   p[1] = r1;
   p[2] = r2;
@@ -307,9 +337,19 @@ model{
   p[4] = K2;
   p[5] = alpha1;
   p[6] = alpha2;
+```
 
+We then simulate dynamics using the function ```odemodel``` that we declared in the ```functions``` block and store them in ```simval```
+```{}
   // integrate ODE
   simval = integrate_ode_rk45(odemodel, {n10sim, n20sim}, t[1], t[2:n], p, rep_array(0.0,0), rep_array(0,0));
+```
+
+Finally, we compute the likelihood by comparing simulated values and data.
+We chose to consider that the observed data points are normally distributed around the simulated values.
+This way, large discrepancies between the data and simulated values will result in a low likelihood.
+
+```{}
   // likelihood
   n1[1] ~ normal(n10sim, sdev1);
   n2[1] ~ normal(n20sim, sdev2);
