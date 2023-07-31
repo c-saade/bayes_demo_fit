@@ -162,7 +162,9 @@ We write the model as a string (or a text file) organized in several blocks:
   - ```model```: to declare parameter priors and how to compute the likelyhood.
   - ```generated quantities```: to declare any quantity we want the sampler to compute along the way.
   
-```{r}
+Let's declare and compile the model in the next code chunk before explaining each bloc in detail:
+  
+```{r, eval = FALSE}
 model_str = '
 functions{
   real[] odemodel(real t, real[] N, real[] p, real[] x_r, int[] x_i){
@@ -230,8 +232,13 @@ model{
 }
 
 generated quantities{
+  real r_ratio = r1/r2;
+  real alpha_ratio = alpha1/alpha2;
 }
 '
+
+# compiling the model
+model = stan_model(model_code=model_str)
 ```
 
 ### functions
@@ -313,7 +320,19 @@ model{
 ```
 
 
-We then declare a prior distribution of all parameters.
+Next, we need to declare a prior distribution of all parameters.
+Prior distributions will constrain the parameter space explored by the sampler.
+Uninformative priors can lead to very slow sampling and convergence issues, while very informative priors keep the model from exploring less common but plausible parameters.
+We thus want to set priors that make sense with our data _i.e._, that lie within a reasonable range.
+We can do so by visually estimating order of magnitude for most parameters:
+
+  - Growth rates (```r1``` and ```r2```) order of magnitude can be roughly estimated from the population doubling time at low density ($r \sim \dfrac{1}{doubling\ time}$).
+  - Carrying capacities (```K1``` and ```K2```) order of magnitude can be roughly estimated using the maximum density.
+  - Competition rates (```aplpha1``` and ```alpha2```) order of magnitude are a bit tougher to estimate. However, we can safely estimate that $$\alpha_1 << 1$$ since _Blepharisma_ sp. is able to grow despite the large density of _Tetrahymena_ sp. and that $$\alpha_2 >> 1$$ since the population of _Tetrahymena_ sp. declines when _Blepharisma_ sp. starts to grow.
+  - The initial densities (```n10sim``` and ```n20sim```) can be estimated to be on the same order of magnitude as the measured initial densities.
+  
+  Once we have rough estimates, we chose priors centered on these estimates and with a variance reflecting the confidence we have on our estimate:
+
 ```{}
   // priors 
   r1 ~ lognormal(-3,1);
@@ -326,7 +345,7 @@ We then declare a prior distribution of all parameters.
   n20sim ~ normal(n2[1],10);
   sdev1 ~ gamma(1, 1);
   sdev2 ~ gamma(1, 1);
-```  
+```
 
 We fill in the vector ```p```.
 ```{}
@@ -362,8 +381,14 @@ This way, large discrepancies between the data and simulated values will result 
 
 ### generated quantities
 
+Finally, we can ask the sampler for generated quantities.
+For exemple, we might be interested in ratio of parameters between species to see at a glance how fast a species grows or how well is competes against the other species.
+We do so by declaring two new variables, ```r_ratio``` and ```alpha_ratio```:
+
 ```{}
 generated quantities{
+  real r_ratio = r1/r2;
+  real alpha_ratio = alpha1/alpha2;
 }
 ```
 
