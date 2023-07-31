@@ -135,7 +135,7 @@ model = stan_model(model_code=model_str)
 # Declaring model options and initial conditions ##################################
 
 # stan options
-chains = 3 # number of parallel chains
+chains = 4 # number of parallel chains
 options(mc.cores = chains) # number of core used (check that you have at least 3)
 
 # number of total iterations and warm-up steps
