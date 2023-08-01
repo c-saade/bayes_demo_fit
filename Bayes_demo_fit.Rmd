@@ -439,10 +439,27 @@ load("./out/fit_posterior.RData")
 
 ## Model diagnostic
 
+Once the model is fitted, we need to diagnose the output to ensure that there is no pathological behavior.
+In particular, we want to ensure that the different chains are well mixed (_i.e._, that the four independent fit end up in the same place) and that parameters are well identifiable.
+
 ### Checking R-hat and n_eff
+The first thing we can do is check some summary statistics.
+The _sampling_ function returned a _stanfit_ object for which the _print_ method is very informative:
+
 ```{r}
 print(fit_obs)
 ```
+
+Printing the stanfit yields summary statistics for all parameters.
+Pay close attention to the last two statistics, ```n_eff``` and ```Rhat```.
+
+```n_eff``` is a measure of the effective number of samples.
+Here, all parameters have more than 6000 effective samples, which should give us a good description of the posterior shape.
+
+```Rhat``` is a measure of chain mixing: it is roughly a measure of inter-chain variability over intra-chain variability.
+The closer ```Rhat``` is to 1, the better mixed the chains are, indicating that the model converged.
+We usually consider that fit with some Rhat larger that 1.01 have not reached convergence and should be run longer.
+Here, all Rhat are displayed as 1 (rounded with at decimal places) so the model has converged.
 
 ### Inspecting chains
 ```{r, eval = FALSE}
