@@ -165,6 +165,10 @@ We write the model as a string (or a text file) organized in several blocks:
 Let's declare and compile the model in the next code chunk before explaining each bloc in detail:
   
 ```{r, eval = FALSE}
+# loading rstan
+library(rstan)
+
+# declaring the model as a string
 model_str = '
 functions{
   real[] odemodel(real t, real[] N, real[] p, real[] x_r, int[] x_i){
@@ -392,7 +396,140 @@ generated quantities{
 }
 ```
 
+### Model fit
+
+Once the model is declared and compiled, we can get into the fit itself.
+We first declare some hyperparameters (parameters of the sampler) and then run the fit:
+
+```{r, eval = FALSE}
+# stan options
+  # number of parallel chains
+  chains = 4
+  options(mc.cores = chains)
+  
+  # number of total iterations and warm-up steps
+  iter   =  10000
+  warmup =  2000
+  
+  # initial parameters choice
+  init=rep(list(list(r1=0.01,
+                   r2=0.1,
+                   K1 = 150,
+                   K2 = 4000,
+                   alpha1 = 1,
+                   alpha2 = 1,
+                   n10sim=5,
+                   n20sim=500,
+                   sdev1 = 1,
+                   sdev2 = 1)), chains)
+# model fit
+fit_obs = sampling(model,
+                  data=data,
+                  iter=iter,
+                  warmup=warmup,
+                  chains=chains,
+                  init=init,
+                  control = list(adapt_delta = 0.9, max_treedepth=12))
+```
+
+```{r, include = FALSE, echo = FALSE}
+library(rstan)
+load("./out/fit_posterior.RData")
+```
 
 ## Model diagnostic
 
+### Checking R-hat and n_eff
+```{r}
+print(fit_obs)
+```
+
+### Inspecting chains
+```{r, eval = FALSE}
+library(coda)
+params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
+samples=As.mcmc.list(fit_obs)
+plot(samples[, params])
+```
+```{r, echo = FALSE}
+library(coda)
+params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
+samples=As.mcmc.list(fit_obs)
+plot(samples[, params[1:2]])
+plot(samples[, params[3:4]])
+plot(samples[, params[5:6]])
+plot(samples[, params[7:8]])
+```
+
+### Pair plots
+```{r, warning=FALSE}
+pairs(fit_obs, pars=params)
+```
+
+
+
 ## Posterior predictions
+```{r}
+library(deSolve)
+```
+
+
+```{r}
+# declaring the lotka-volterra model
+ode.model = function(t,N,p){
+  r1 = p$r1
+  r2 = p$r2
+  K1 = p$K1
+  K2 = p$K2
+  alpha1 = p$alpha1
+  alpha2 = p$alpha2
+  dn1 = r1*N[1]*(1-(N[1]+alpha1*N[2])/K1)
+  dn2 = r2*N[2]*(1-(alpha2*N[1]+N[2])/K2)
+  return(list(c(dn1, dn2)))
+}
+```
+
+```{r}
+# sampling 1000 values from the posterior distribution and
+# computing the predicted dynamics for each
+n_post = 1000
+times = seq(min(data$t), max(data$t), length.out = 200)
+posteriors = as.matrix(fit_obs)
+for (k in 1:n_post){
+  par = posteriors[sample(1:nrow(posteriors), 1),]
+  sim = ode(c(par['n10sim'], par['n20sim']),
+            times, ode.model, list(r1 = par['r1'],
+                                   r2= par['r2'],
+                                   K1 = par['K1'],
+                                   K2 = par['K2'],
+                                   alpha1 = par['alpha1'],
+                                   alpha2 = par['alpha2']),
+            method = 'ode45')
+  
+  temp  = data.frame(time = sim[,1], n1 = sim[,2], n2 = sim[,3], id = k)
+  
+  if (k == 1) {
+    predictions = temp
+  } else {
+    predictions = rbind(predictions, temp)
+  }
+}
+```
+
+```{r}
+# plotting the 1000 predictions over the data
+panel_a = ggplot(filtered_data) +
+  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n1, group = id), color = 'blue', alpha = 0.01) +
+  xlab('') +
+  ylab('Density of Blepharisma sp. (indiv./mL)')
+
+panel_b = ggplot(filtered_data) +
+  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = 'red', alpha = 0.01) +
+  xlab('Time (h)') +
+  ylab('Density of Tetrahymena sp. (indiv./mL)')
+
+ggarrange(panel_a, panel_b, nrow = 2)
+```
+
