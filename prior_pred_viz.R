@@ -63,29 +63,29 @@ for (k in 1:n_prior_pred){
 
 
 ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
-  geom_point(mapping = aes(x = t, y = n2/10), color = 'red') +
-  geom_line(data = predictions, mapping = aes(x = time, y = n1, group = id), color = 'blue', alpha = 0.01) +
-  geom_line(data = predictions, mapping = aes(x = time, y = n2/10, group = id), color = 'red', alpha = 0.01) +
+  geom_point(mapping = aes(x = t, y = n1), color = '#E69F00') +
+  geom_point(mapping = aes(x = t, y = n2/10), color = '#009E73') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n1, group = id), color = '#E69F00', alpha = 0.01) +
+  geom_line(data = predictions, mapping = aes(x = time, y = n2/10, group = id), color = '#009E73', alpha = 0.01) +
   theme_classic() +
   ylim(0, 1000)
 
 ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
-  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  geom_point(mapping = aes(x = t, y = n1), color = '#E69F00') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = 'blue', alpha = 0.2) +
+               geom = 'ribbon', fill = '#E69F00', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun = median,
-               geom = 'line', color = 'blue') +
+               geom = 'line', color = '#E69F00') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = 'red', alpha = 0.2) +
+               geom = 'ribbon', fill = '#009E73', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun = median,
-               geom = 'line', color = 'red') +
+               geom = 'line', color = '#009E73') +
   theme_classic()
 

@@ -37,12 +37,12 @@ filtered_data <-
 
 # taking a look at the time series
 panel_a = ggplot(data = filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+  geom_point(mapping = aes(x = t, y = n1), color = '#E69F00') +
   xlab('Time (h)') +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(data = filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
@@ -239,14 +239,14 @@ for (k in 1:n_post){
 
 # plotting the 1000 predictions over the data
 panel_a = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
-  geom_line(data = predictions, mapping = aes(x = time, y = n1, group = id), color = 'blue', alpha = 0.01) +
+  geom_point(mapping = aes(x = t, y = n1), color = '#E69F00') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n1, group = id), color = '#E69F00', alpha = 0.01) +
   xlab('') +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
-  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = 'red', alpha = 0.01) +
+  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = '#009E73', alpha = 0.01) +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
@@ -254,26 +254,26 @@ ggsave('out/posterior_predictions.pdf', ggarrange(panel_a, panel_b, nrow = 2), w
 
 # plotting the median and 90% quantiles
 panel_a = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+  geom_point(mapping = aes(x = t, y = n1), color = '#E69F00') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = 'blue', alpha = 0.2) +
+               geom = 'ribbon', fill = '#E69F00', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun = median,
-               geom = 'line', color = 'blue') +
+               geom = 'line', color = '#E69F00') +
   xlab('') +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = 'red', alpha = 0.2) +
+               geom = 'ribbon', fill = '#009E73', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun = median,
-               geom = 'line', color = 'red') +
+               geom = 'line', color = '#009E73') +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
