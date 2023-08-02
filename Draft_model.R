@@ -95,7 +95,7 @@ model{
   r1 ~ lognormal(-3,1);
   r2 ~ lognormal(-2,1);
   K1 ~ lognormal(5, 0.8);
-  K2 ~ lognormal(8, 0.5);
+  K2 ~ lognormal(8, 0.8);
   alpha1 ~ lognormal(-3,1);
   alpha2 ~ lognormal(2.5,1);
   n10sim ~ normal(n1[1],5);
