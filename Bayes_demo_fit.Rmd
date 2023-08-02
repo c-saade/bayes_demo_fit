@@ -423,7 +423,7 @@ We first declare some hyperparameters (parameters of the sampler) and then run t
                    sdev1 = 1,
                    sdev2 = 1)), chains)
 # model fit
-fit_obs = sampling(model,
+fit = sampling(model,
                   data=data,
                   iter=iter,
                   warmup=warmup,
@@ -431,7 +431,7 @@ fit_obs = sampling(model,
                   init=init,
                   control = list(adapt_delta = 0.9, max_treedepth=12))
 
-save(fit_obs, file="./out/fit_posterior.RData")
+save(fit, file="./out/fit_posterior.RData")
 ```
 
 ```{r, include = FALSE, echo = FALSE}
@@ -448,7 +448,7 @@ In particular, we want to ensure that the different chains are well mixed (_i.e.
 The first thing we can do is check some summary statistics.
 
 ```{r}
-print(fit_obs)
+print(fit)
 ```
 
 Printing the model fit yields summary statistics for all infered parameters.
@@ -471,13 +471,13 @@ Everything here looks good.
 ```{r, eval = FALSE}
 library(coda)
 params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
-samples=As.mcmc.list(fit_obs)
+samples=As.mcmc.list(fit)
 traceplot(samples[, params[1:6]])
 ```
 ```{r, echo = FALSE, message=FALSE}
 library(coda)
 params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
-samples=As.mcmc.list(fit_obs)
+samples=As.mcmc.list(fit)
 plot(samples[, params[1:2]])
 plot(samples[, params[3:4]])
 plot(samples[, params[5:6]])
@@ -488,7 +488,7 @@ Lastly, we can check the pair plot of the posteriors.
 We want to ensure that there is no near perfect correlation between parameters, which would indicate non identifiability.
 
 ```{r, warning=FALSE}
-pairs(fit_obs, pars=params)
+pairs(fit, pars=params)
 ```
 
 
@@ -522,7 +522,7 @@ ode.model = function(t,N,p){
 # computing the predicted dynamics for each
 n_post = 1000
 times = seq(min(data$t), max(data$t), length.out = 200)
-posteriors = as.matrix(fit_obs)
+posteriors = as.matrix(fit)
 for (k in 1:n_post){
   par = posteriors[sample(1:nrow(posteriors), 1),]
   sim = ode(c(par['n10sim'], par['n20sim']),

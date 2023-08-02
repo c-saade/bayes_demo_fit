@@ -139,8 +139,8 @@ chains = 4 # number of parallel chains
 options(mc.cores = chains) # number of core used (check that you have at least 3)
 
 # number of total iterations and warm-up steps
-iter   =  10000
-warmup =  2000
+iter   =  2000
+warmup =  1000
 
 # initial values for sampling 
 init=rep(list(list(r1=0.01,
@@ -161,10 +161,10 @@ init=rep(list(list(r1=0.01,
 
 # Note that the fit can take some time, depending on your hardware.
 # You can skip the fitting by commenting out the next two commands
-# ('fit_obs = sampling...' and 'save(fit_obs...)') and uncommenting
+# ('fit = sampling...' and 'save(fit...)') and uncommenting
 # load("./out/fit_posterior.RData")
 
-fit_obs = sampling(model,
+fit = sampling(model,
                   data=data,
                   iter=iter,
                   warmup=warmup,
@@ -174,7 +174,7 @@ fit_obs = sampling(model,
                   refresh=10
 )
 
-save(fit_obs, file="./out/fit_posterior.RData")
+save(fit, file="./out/fit_posterior.RData")
 
 #load("./out/fit_posterior.RData")
 
@@ -182,17 +182,17 @@ save(fit_obs, file="./out/fit_posterior.RData")
 params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
 
 # Checking posterior properties (rhat should be as close to 1 as possible)
-print(fit_obs)
+print(fit)
 
 # saving a plot of the chains
-samples=As.mcmc.list(fit_obs)
+samples=As.mcmc.list(fit)
 pdf('out/chains.pdf')
 plot(samples[, params])
 dev.off()
 
 # saving pair plot of parameters
 pdf('out/pair.pdf')
-pairs(fit_obs, pars=params)
+pairs(fit, pars=params)
 dev.off()
 
 ## Posterior predictions  ####################################################
@@ -215,7 +215,7 @@ ode.model = function(t,N,p){
 # computing the predicted dynamics for each
 n_post = 1000
 times = seq(min(data$t), max(data$t), length.out = 200)
-posteriors = as.matrix(fit_obs)
+posteriors = as.matrix(fit)
 for (k in 1:n_post){
   par = posteriors[sample(1:nrow(posteriors), 1),]
   sim = ode(c(par['n10sim'], par['n20sim']),
