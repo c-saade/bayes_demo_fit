@@ -430,6 +430,8 @@ fit_obs = sampling(model,
                   chains=chains,
                   init=init,
                   control = list(adapt_delta = 0.9, max_treedepth=12))
+
+save(fit_obs, file="./out/fit_posterior.RData")
 ```
 
 ```{r, include = FALSE, echo = FALSE}
@@ -444,13 +446,12 @@ In particular, we want to ensure that the different chains are well mixed (_i.e.
 
 ### Checking R-hat and n_eff
 The first thing we can do is check some summary statistics.
-The _sampling_ function returned a _stanfit_ object for which the _print_ method is very informative:
 
 ```{r}
 print(fit_obs)
 ```
 
-Printing the stanfit yields summary statistics for all parameters.
+Printing the model fit yields summary statistics for all infered parameters.
 Pay close attention to the last two statistics, ```n_eff``` and ```Rhat```.
 
 ```n_eff``` is a measure of the effective number of samples.
@@ -462,23 +463,29 @@ We usually consider that fit with some Rhat larger that 1.01 have not reached co
 Here, all Rhat are displayed as 1 (rounded with at decimal places) so the model has converged.
 
 ### Inspecting chains
+We can also inspect the posteriors visually by looking at the trace and density plots.
+Trace plots show the parameters values over iterations, density plots show the posterior distribution of parameters.
+For a healthy sample, trace plots should look stationnary (constant mean over iteration) with indistinguishable chains, and density plots should be unimodal.
+Everything here looks good.
+
 ```{r, eval = FALSE}
 library(coda)
 params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
 samples=As.mcmc.list(fit_obs)
-plot(samples[, params])
+traceplot(samples[, params[1:6]])
 ```
-```{r, echo = FALSE}
+```{r, echo = FALSE, message=FALSE}
 library(coda)
 params = c("r1","r2", "K1", "K2", "alpha1", "alpha2", "r_ratio", "alpha_ratio")
 samples=As.mcmc.list(fit_obs)
 plot(samples[, params[1:2]])
 plot(samples[, params[3:4]])
 plot(samples[, params[5:6]])
-plot(samples[, params[7:8]])
 ```
 
 ### Pair plots
+Lastly, we can check the pair plot of the posteriors.
+We want to ensure that there is no near perfect correlation between parameters, which would indicate non identifiability.
 ```{r, warning=FALSE}
 pairs(fit_obs, pars=params)
 ```
@@ -486,6 +493,7 @@ pairs(fit_obs, pars=params)
 
 
 ## Posterior predictions
+
 ```{r}
 library(deSolve)
 ```
