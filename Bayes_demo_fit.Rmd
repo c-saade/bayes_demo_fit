@@ -9,6 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=10, fig.height=6, fig.align = 'center')
 ```
 
 ## Introduction
@@ -55,7 +56,7 @@ Here is a summary of the columns content:
   - "hours": the time passed since the beginning of the culture (in hours).
 
 Let us take a look at the data:
-```{r, warning=FALSE, message = FALSE, fig.align='center'}
+```{r fig1, warning=FALSE, message = FALSE}
 # plotting the whole data
 library(tidyverse)
 theme_set(theme_light())
@@ -385,7 +386,7 @@ ode.model = function(t,N,p){
 
 # Sampling 1000 parameter combinations from the prior distributions and simulating dynamics
 library(deSolve)
-n_prior_pred = 200
+n_prior_pred = 1000
 times = seq(min(filtered_data$t), max(filtered_data$t), length.out = 200)
 for (k in 1:n_prior_pred){
   par = draw_random_parameters()
@@ -664,7 +665,7 @@ panel_b = ggplot(filtered_data) +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
-ggsave('out/posterior_predictions_quantiles.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
+ggarrange(panel_a, panel_b, nrow = 2)
 ```
 
 ## Conclusion
@@ -711,5 +712,5 @@ In particular, _Blepharisma_ sp. experiences very low competition but exerts a s
 
 For the sake of demonstration, we have worked here with a very simple model on a single time series.
 However, Rstan's flexibility allows to build finer model taking advantage of experimental replicates and various time series (_e.g._, mono-, bi- and tri-specific time series.)
-If you want to delve into the specific of such a model, I invite you to check out the [code](https://doi.org/10.5281/zenodo.6364903) for the paper from which the data comes.
+If you want to delve into the specific of such a model, I invite you to check out the [code](https://doi.org/10.5281/zenodo.6364903) for the research article from which the data comes.
 
