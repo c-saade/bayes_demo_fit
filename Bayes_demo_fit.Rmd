@@ -408,8 +408,8 @@ We first declare some hyperparameters (parameters of the sampler) and then run t
   options(mc.cores = chains)
   
   # number of total iterations and warm-up steps
-  iter   =  10000
-  warmup =  2000
+  iter   =  3000
+  warmup =  1000
   
   # initial parameters choice
   init=rep(list(list(r1=0.01,
@@ -429,7 +429,7 @@ fit = sampling(model,
                   warmup=warmup,
                   chains=chains,
                   init=init,
-                  control = list(adapt_delta = 0.9, max_treedepth=12))
+                  control = list(adapt_delta = 0.95, max_treedepth=12))
 
 save(fit, file="./out/fit_posterior.RData")
 ```
