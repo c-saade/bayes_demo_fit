@@ -55,7 +55,7 @@ Here is a summary of the columns content:
   - "hours": the time passed since the beginning of the culture (in hours).
 
 Let us take a look at the data:
-```{r, warning=FALSE, message = FALSE}
+```{r, warning=FALSE, message = FALSE, fig.align='center'}
 # plotting the whole data
 library(tidyverse)
 theme_set(theme_light())
@@ -503,7 +503,7 @@ fit = sampling(model,
                   warmup=warmup,
                   chains=chains,
                   init=init,
-                  control = list(adapt_delta = 0.95, max_treedepth=12),
+                  control = list(adapt_delta = 0.98, max_treedepth=12),
                   seed = 123)
 
 save(fit, file="./out/fit_posterior.RData")

@@ -170,7 +170,7 @@ fit = sampling(model,
                   warmup=warmup,
                   chains=chains,
                   init=init,
-                  control = list(adapt_delta = 0.95, max_treedepth=12),
+                  control = list(adapt_delta = 0.98, max_treedepth=12),
                   refresh=100,
                   seed = 123)
 
