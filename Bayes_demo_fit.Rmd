@@ -548,7 +548,7 @@ Printing the model fit yields summary statistics for all infered parameters.
 Pay close attention to the last two statistics, ```n_eff``` and ```Rhat```.
 
 ```n_eff``` is a measure of the effective number of samples.
-Here, all parameters have more than 6000 effective samples, which should give us a good description of the posterior shape.
+Here, all parameters have more than a thousand effective samples, which should give us a good description of the posterior shape.
 
 ```Rhat``` is a measure of chain mixing: it is roughly a measure of inter-chain variability over intra-chain variability.
 The closer ```Rhat``` is to 1, the better mixed the chains are, indicating that the model converged.
