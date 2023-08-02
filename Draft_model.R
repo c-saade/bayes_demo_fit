@@ -139,7 +139,7 @@ chains = 4 # number of parallel chains
 options(mc.cores = chains) # number of core used (check that you have at least 3)
 
 # number of total iterations and warm-up steps
-iter   =  3000
+iter   =  4000
 warmup =  2000
 
 # initial values for sampling 
@@ -171,8 +171,8 @@ fit = sampling(model,
                   chains=chains,
                   init=init,
                   control = list(adapt_delta = 0.95, max_treedepth=12),
-                  refresh=10
-)
+                  refresh=100,
+                  seed = 123)
 
 save(fit, file="./out/fit_posterior.RData")
 
