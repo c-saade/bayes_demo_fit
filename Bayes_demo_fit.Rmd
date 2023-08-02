@@ -486,6 +486,7 @@ plot(samples[, params[5:6]])
 ### Pair plots
 Lastly, we can check the pair plot of the posteriors.
 We want to ensure that there is no near perfect correlation between parameters, which would indicate non identifiability.
+
 ```{r, warning=FALSE}
 pairs(fit_obs, pars=params)
 ```
@@ -493,11 +494,13 @@ pairs(fit_obs, pars=params)
 
 
 ## Posterior predictions
+Now that we have diagnosed our model, we can check its predictions.
+To do so, we will sample 1000 parameter values from the posterior distributions and simulate the resulting dynamics.
+We can then plot these dynamics over our data to check if the model is a good fit.
 
 ```{r}
 library(deSolve)
 ```
-
 
 ```{r}
 # declaring the lotka-volterra model
