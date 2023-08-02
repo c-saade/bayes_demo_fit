@@ -75,6 +75,7 @@ density_data %>%
   ylab('Species density (log2(indiv./mL))') +
   xlab('Time (h)')
 ```
+
 We show here the density (on a log scale) over time of species for each species combination.
 This makes a large data set on which to fit a single model.
 For the sake of simplicity, we will work only on a subset of the data: the co-culture of _Blepharisma_ sp. and _Tetrahymena_ sp., and we will average the data across replicates.
@@ -561,4 +562,81 @@ panel_b = ggplot(filtered_data) +
 
 ggarrange(panel_a, panel_b, nrow = 2)
 ```
+
+Alternatively, we can plot the median and 5\% percentile rather that all the predictions:
+
+```{r}
+# plotting the median and 5\% quantiles
+panel_a = ggplot(filtered_data) +
+  geom_point(mapping = aes(x = t, y = n1), color = 'blue') +
+  stat_summary(data = predictions, mapping = aes(x = time, y = n1),
+               fun.min = function(x) quantile(x, 0.05),
+               fun.max = function(x) quantile(x, 0.95),
+               geom = 'ribbon', fill = 'blue', alpha = 0.2) +
+  stat_summary(data = predictions, mapping = aes(x = time, y = n1),
+               fun = median,
+               geom = 'line', color = 'blue') +
+  xlab('') +
+  ylab('Density of Blepharisma sp. (indiv./mL)')
+
+panel_b = ggplot(filtered_data) +
+  geom_point(mapping = aes(x = t, y = n2), color = 'red') +
+  stat_summary(data = predictions, mapping = aes(x = time, y = n2),
+               fun.min = function(x) quantile(x, 0.05),
+               fun.max = function(x) quantile(x, 0.95),
+               geom = 'ribbon', fill = 'red', alpha = 0.2) +
+  stat_summary(data = predictions, mapping = aes(x = time, y = n2),
+               fun = median,
+               geom = 'line', color = 'red') +
+  xlab('Time (h)') +
+  ylab('Density of Tetrahymena sp. (indiv./mL)')
+
+ggsave('out/posterior_predictions_quantiles.pdf', ggarrange(panel_a, panel_b, nrow = 2), width = 5, height = 6)
+```
+
+## Conclusion
+Using Rstan, we have been able to fit the Lotka-Volterra model to experimental time series.
+This allowed us to estimate the growth rate, carrying capacity and interspecific competition strength of two protist species (_Blepharisma_ sp. and _Tetrahymena thermophila_) on the same medium:
+```{r, echo = FALSE}
+posterior_df = data.frame(posteriors)
+
+posterior_ble <- posterior_df %>%
+  select(c("r1", "K1", "alpha1")) %>%
+  rename("r" = "r1", "K" = "K1", "alpha" = "alpha1") %>%
+  mutate(species = "Blepharisma")
+
+posterior_tet <- posterior_df %>%
+  select(c("r2", "K2", "alpha2")) %>%
+  rename("r" = "r2", "K" = "K2", "alpha" = "alpha2") %>%
+  mutate(species = "Tetrahymena")
+
+posterior_df = bind_rows(posterior_ble, posterior_tet)
+
+panel_r = posterior_df %>%
+  ggplot() +
+  geom_density(mapping = aes(x = r, color = species, fill = species), alpha = 0.3) +
+  xlab("Growth rate (r)")
+
+panel_K = posterior_df %>%
+  ggplot() +
+  geom_density(mapping = aes(x = K, color = species, fill = species), alpha = 0.3) +
+  xscale('log10') +
+  xlab("Carrying capacity (K)")
+
+panel_alpha = posterior_df %>%
+  ggplot() +
+  geom_density(mapping = aes(x = alpha, color = species, fill = species), alpha = 0.3) +
+  xscale('log10') +
+  xlab("Competition rate (alpha)")
+
+ggarrange(panel_r, panel_K, panel_alpha, ncol = 3, common.legend = TRUE)
+
+```
+
+We can see that both species grow at similar rates (despite the larger uncertainty on _Blepharisma_ sp.'s growth rate), but their carrying capacities and competition rates are orders of magnitudes apart.
+In particular, _Blepharisma_ sp. experiences very low competition but exerts a strong competition on _Tetrahymena_ sp., which explains why the former ends up excluding the latter.
+
+For the sake of demonstration, we have worked here with a very simple model on a single time series.
+However, Rstan's flexibility allows to build finer model taking advantage of experimental replicates and various time series (_e.g._, mono-, bi- and tri-specific time series.)
+If you want to delve into the specific of such a model, I invite you to check out the [code](https://doi.org/10.5281/zenodo.6364903) for the paper from which the data comes.
 
