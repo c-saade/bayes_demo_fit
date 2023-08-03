@@ -42,7 +42,7 @@ panel_a = ggplot(data = filtered_data) +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(data = filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
@@ -89,7 +89,7 @@ parameters{
 
 model{
   real p[6]; // vector of parameters for the ODE
-  real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2 (S = 1, I = 2)
+  real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2
   
   // priors 
   r1 ~ lognormal(-3,1);
@@ -245,8 +245,8 @@ panel_a = ggplot(filtered_data) +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
-  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = '#009E73', alpha = 0.01) +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = '#CC79A7', alpha = 0.01) +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
@@ -266,14 +266,14 @@ panel_a = ggplot(filtered_data) +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = '#009E73', alpha = 0.2) +
+               geom = 'ribbon', fill = '#CC79A7', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun = median,
-               geom = 'line', color = '#009E73') +
+               geom = 'line', color = '#CC79A7') +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 

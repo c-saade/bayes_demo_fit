@@ -9,23 +9,23 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(fig.width=10, fig.height=6, fig.align = 'center')
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.align = 'center')
 ```
 
 ## Introduction
 
 Demographic models are an invaluable tool in ecology, as they offer insights into the dynamics of species over time.
-By estimating ecologically relevant parameters - such as growth rates and competition strength - these models shed light on complex ecological systems and eventually to predict their future dynamics or produce in-silico experiments.
+By estimating ecologically relevant parameters - such as growth rates and competition strength - these models shed light on complex ecological systems and allow to predict their future dynamics or produce _in silico_ experiments.
 
-However, fitting these models can be quite complex and using them for prediction requires robust parameter estimation for prediction purpose.
-In particular, traditional frequentist approaches often lack the flexibility to accomodate complex models and they offer point estimates which risk missing identifiability issues.
+However, fitting these models can be quite complex and using them for prediction requires robust parameter estimation.
+In particular, traditional frequentist approaches often lack the flexibility to accommodate complex models and they offer point estimates which risk missing identifiability issues.
 Bayesian approaches on the other hand, are well suited to estimate parameter distributions and allow to identify pathological correlations between parameters at a glance.
 
-In this article, we will use RStan - a bayesian statistical R package - to analyze time series of two interacting species and find out the mechanisms underlying their dynamics.
+In this article, we will use RStan - a bayesian statistical R package - to fit a demographic model onto the time series of two interacting species and find out the mechanisms underlying their dynamics.
 
 ## Data
 
-In one of my [research projects](https://doi.org/10.1098/rspb.2022.0543) I studied ecosystems recovery dynamics using microcosms - _i.e._, small laboratory ecosystems made up of microorganisms.
+In one of my [research projects](https://doi.org/10.1098/rspb.2022.0543) I studied ecosystems recovery dynamics using microcosms - _i.e._, small laboratory ecosystems inhabited by microorganisms.
 To overcome laboratory limitations of experiment duration and ecosystem size, I also reproduced and expanded the experiment _in silico_.
 To get a robust parameterization of the simulations, I fitted a demographic model to preliminary data.
 We will work with this preliminary data, consisting of growth curves of several unicellular species in isolation and in co-culture.
@@ -55,11 +55,11 @@ Here is a summary of the columns content:
   - "Ble": the density (individuals/mL) of _Blepharisma_ sp.
   - "hours": the time passed since the beginning of the culture (in hours).
 
-Let us take a look at the data:
+Let us take a look at the dynamics:
 ```{r, message = FALSE}
 # loading tidyverse and setting a nice theme
 library(tidyverse)
-theme_set(theme_light())
+theme_set(theme_classic())
 
 # setting a colorblind-friendly palette
 library(ggthemes)
@@ -94,9 +94,9 @@ density_data %>%
   xlab('Time (h)')
 ```
 
-We show here the density (on a log scale) over time of species for each species combination.
-This makes a large data set on which to fit a single model.
-For the sake of simplicity, we will work only on a subset of the data: the co-culture of _Blepharisma_ sp. and _Tetrahymena_ sp., and we will average the data across replicates.
+We show here the density of species (on a log scale) over time for each species combination.
+Fitting a single model onto all this data is possible, but computationnaly intensive and conceptually difficult.
+For the sake of simplicity, we will work only on a subset of the data: the co-culture of _Blepharisma_ sp. and _Tetrahymena thermophila_, and we will average the data across replicates.
 If you wish to explore how to take advantage of monocultures, tri-cultures and replications, you can have a look into the papers [data and code](https://doi.org/10.5281/zenodo.6364903).
 Let's filter the data and average across replicates:
 
@@ -121,16 +121,16 @@ panel_a = ggplot(data = filtered_data) +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(data = filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
 ggarrange(panel_a, panel_b, nrow = 2)
 ```
 
-We end up with a single time series for _Blepharisma_ sp. (blue) and for _Tetrahymena_ sp. (red), which is much more manageable in the context of this guide.
-For now we can only describe the dynamics verbally: the population _Tetrahymena thermophila_ grows very fast, reaching a fairly high density of 6000 individuals per mL under 100 hours, before crashing down as the population of _Blepharisma_ sp. grow.
-On the opposite, the population of _Blepharisma_ sp. grows fairly slowly, seemingly reaching an equilibrium density of 150 individuals per mL in over 200 hours.
+We end up with a single time series for _Blepharisma_ sp. (yellow) and for _Tetrahymena thermophila_ (pink), which is much more manageable in the context of this guide.
+For now we can only describe the dynamics verbally: the population of _Tetrahymena thermophila_ grows very fast, reaching a fairly high density of 6000 individuals per mL under 100 hours, before crashing down as the population of _Blepharisma_ sp. grows.
+On the contrary, the population of _Blepharisma_ sp. grows fairly slowly, seemingly reaching an equilibrium density of 150 individuals per mL in over 200 hours.
 Fitting a demographic model onto this data would allow us to numerically quantify these observations as well as unobservable quantities such as competition rates.
 
 Before delving into the model specifics, the last thing we want to do is transform this data into a list that is manageable by Rstan:
@@ -145,7 +145,7 @@ data = list(n  = nrow(filtered_data), # number of observations
 
 ## Demographic model
 
-Species dynamics in ecology are often described using differential equations describe the instantaneous growth rate as a function of the species density.
+Species dynamics in ecology are often described using differential equations which give the instantaneous growth rate of a population as a function of its current density.
 The go-to model to describe the dynamics of two species in competition is the [competitive Lotka-Volterra model](https://en.wikipedia.org/wiki/Competitive_Lotka%E2%80%93Volterra_equations):
 
 $$
@@ -221,7 +221,7 @@ parameters{
 
 model{
   real p[6]; // vector of parameters for the ODE
-  real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2 (S = 1, I = 2)
+  real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2
   
   // priors 
   r1 ~ lognormal(-3,1);
@@ -264,10 +264,10 @@ generated quantities{
 model = stan_model(model_code=model_str)
 ```
 
-### functions
+### functions{}
 
-The only function we need here is a the ODE of the Lotka-Volterra model.
-At each step, the sample will use it to simulate the dynamics of a given set of parameters which will serve to compute the likelihood.
+The only function we need here is the ODE of the Lotka-Volterra model.
+At each step, the sampler will use it to simulate the dynamics of a given set of parameters which will serve to compute the likelihood.
 
 ```{}
 functions{
@@ -283,7 +283,7 @@ functions{
 
 
 
-### data
+### data{}
 
 Here we declare the data that we will give to the sampler:
 
@@ -302,7 +302,7 @@ data{
 
 
 
-### parameters
+### parameters{}
 
 Here we declare the model parameters, _i.e._, the quantities that the sampler need to estimate:
   
@@ -327,19 +327,19 @@ parameters{
 ```
 
 
-### model
+### model{}
 
 Finally, we can write the bulk of the model.
 This block is used to declare how to compute the likelyhood from a given set of parameters.
 To do so, we need to declare the parameters prior distributions, to write down how to simulate dynamics and finally how to compute likelyhood from simulated dynamics and data.
 
 We first declare the variables that will be used in this block.
-We need to declare a vector ```p``` to feed the parameters of the Lotka-Volterra model to rstan's integrator.
-```simval``` is the vector in which we will store the outpout of the numerical integration. It is of length ```n-1``` because the initial conditions are estimated as a parameter, and of width 2 to store the densities of both species.
+We need to declare a vector ```p``` to feed the parameters of the Lotka-Volterra model to rstan's integrator, and a vector
+```simval``` in which we will store the outpout of the numerical integration. It is of length ```n-1``` because the initial conditions are estimated as a parameter, and of width 2 to store the densities of both species.
 ```{}
 model{
   real p[6]; // vector of parameters for the ODE
-  real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2 (S = 1, I = 2)
+  real simval[n-1,2]; // simulated values, matrix. dim1 = time without t0, dim2 = dim_ODE = 2
 ```
 
 
@@ -351,10 +351,10 @@ We can do so by visually estimating order of magnitude for most parameters:
 
   - Growth rates (```r1``` and ```r2```) order of magnitude can be roughly estimated from the population doubling time at low density ($r \sim \dfrac{1}{doubling\ time}$).
   - Carrying capacities (```K1``` and ```K2```) order of magnitude can be roughly estimated using the maximum density.
-  - Competition rates (```aplpha1``` and ```alpha2```) order of magnitude are a bit tougher to estimate. However, we can safely estimate that $$\alpha_1 << 1$$ since _Blepharisma_ sp. is able to grow despite the large density of _Tetrahymena_ sp. and that $$\alpha_2 >> 1$$ since the population of _Tetrahymena_ sp. declines when _Blepharisma_ sp. starts to grow.
+  - Competition rates (```aplpha1``` and ```alpha2```) order of magnitude are a bit tougher to estimate. However, we can safely estimate that $$\alpha_1 << 1$$ since _Blepharisma_ sp. is able to grow despite the large density of _Tetrahymena thermophila_ and that $$\alpha_2 >> 1$$ since the population of _Tetrahymena thermophila_ declines when _Blepharisma_ sp. starts to grow.
   - The initial densities (```n10sim``` and ```n20sim```) can be estimated to be on the same order of magnitude as the measured initial densities.
   
-  Once we have rough estimates, we chose priors centered on these estimates and with a variance reflecting the confidence we have on our estimate:
+Once we have rough estimates, we chose priors centered on these estimates and with a variance reflecting the confidence we have on our estimate:
 
 ```{}
   // priors 
@@ -370,8 +370,15 @@ We can do so by visually estimating order of magnitude for most parameters:
   sdev2 ~ gamma(1, 1);
 ```
 
+The shape of priors is somewhat up to you but normal, lognormal and gamma distributions are good to keep in mind.
+The normal distribution is often a go-to for parameters we think are symmetrically distributed around a mean (_e.g._, initial densities).
+The lognormal distribution is a distribution whose logarithm is normally distributed.
+It is useful to enforce positive parameters without setting a hard boundary.
+The gamma distribution is very useful for its flexibility, as its first parameter can change its shape drastically.
+Here for exemple, we get an exponential distribution for the variance of the residuals by setting this parameter to 1.
+
 #### note: prior predictions
-It is always a good idea to check the validity of our priors by making prior predictions, _i.e._, taking a look at model predictions when sampling parameters from the prior and checking that data falls into the range predicted by the prior distributions:
+It is always a good idea to check the validity of our priors by making prior predictions, _i.e._, taking a look at model predictions when sampling parameters from the priors and checking that data falls into the predicted range:
 
 ```{r}
 # declaring a function that draws parameters from the prior distributions
@@ -423,7 +430,7 @@ for (k in 1:n_prior_pred){
 # plotting median and 5% quantiles of prior predictions over the data
 ggplot(filtered_data) +
   geom_point(mapping = aes(x = t, y = n1), color = '#E69F00') +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n1),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
@@ -434,16 +441,17 @@ ggplot(filtered_data) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = '#009E73', alpha = 0.2) +
+               geom = 'ribbon', fill = '#CC79A7', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun = median,
-               geom = 'line', color = '#009E73') +
-  theme_classic()
+               geom = 'line', color = '#CC79A7') +
+  xlab('Time (h)') +
+  ylab('Species density (indiv./mL)')
 ```
 
-The observed data falls well within the range of the prior predictions, so we can be confident in our prior choices.
+The observed data (points) falls well within the range of the prior predictions (shaded areas), so we can be confident in our prior choices.
 
-We fill in the vector ```p```.
+We fill in the vector ```p```:
 ```{}
   // parameters for integrator
   p[1] = r1;
@@ -454,7 +462,7 @@ We fill in the vector ```p```.
   p[6] = alpha2;
 ```
 
-We then simulate dynamics using the function ```odemodel``` that we declared in the ```functions``` block and store them in ```simval```
+We then simulate dynamics using the function ```odemodel``` that we declared in the ```functions``` block and store them in ```simval```:
 ```{}
   // integrate ODE
   simval = integrate_ode_rk45(odemodel, {n10sim, n20sim}, t[1], t[2:n], p, rep_array(0.0,0), rep_array(0,0));
@@ -475,7 +483,7 @@ This way, large discrepancies between the data and simulated values will result 
 }
 ```
 
-### generated quantities
+### generated quantities{}
 
 Finally, we can ask the sampler for generated quantities.
 For exemple, we might be interested in ratio of parameters between species to see at a glance how fast a species grows or how well is competes against the other species.
@@ -500,8 +508,8 @@ We first declare some hyperparameters (parameters of the sampler) and then run t
   options(mc.cores = chains)
   
   # number of total iterations and warm-up steps
-  iter   =  3000
-  warmup =  1000
+  iter   =  4000
+  warmup =  2000
   
   # initial parameters choice
   init=rep(list(list(r1=0.01,
@@ -544,16 +552,16 @@ The first thing we can do is check some summary statistics.
 print(fit)
 ```
 
-Printing the model fit yields summary statistics for all infered parameters.
+Printing the model fit yields summary statistics for all inferred parameters.
 Pay close attention to the last two statistics, ```n_eff``` and ```Rhat```.
 
 ```n_eff``` is a measure of the effective number of samples.
 Here, all parameters have more than a thousand effective samples, which should give us a good description of the posterior shape.
 
-```Rhat``` is a measure of chain mixing: it is roughly a measure of inter-chain variability over intra-chain variability.
+```Rhat``` is a measure of chain mixing, roughly similar to inter-chain variability over intra-chain variability.
 The closer ```Rhat``` is to 1, the better mixed the chains are, indicating that the model converged.
-We usually consider that fit with some Rhat larger that 1.01 have not reached convergence and should be run longer.
-Here, all Rhat are displayed as 1 (rounded with at decimal places) so the model has converged.
+We usually consider that fit with some Rhat larger that 1.01 have not reached convergence and should be run longer or reparameterized.
+Here, all Rhat are displayed as 1 (rounded at 2 decimal places) so the model has converged.
 
 ### Inspecting chains
 We can also inspect the posteriors visually by looking at the trace and density plots.
@@ -579,6 +587,9 @@ plot(samples[, params[5:6]])
 ### Pair plots
 Lastly, we can check the pair plot of the posteriors.
 We want to ensure that there is no near perfect correlation between parameters, which would indicate non identifiability.
+By design, r1 and r_ratio are strongly correlated.
+This is not an issue because r_ratio is a generated parameter computed from r1.
+Aside from this, there are no strong correlation between inferred parameters.
 
 ```{r, warning=FALSE}
 pairs(fit, pars=params)
@@ -588,7 +599,7 @@ pairs(fit, pars=params)
 
 ## Posterior predictions
 Now that we have diagnosed our model, we can check its predictions.
-To do so, we will sample 1000 parameter values from the posterior distributions and simulate the resulting dynamics.
+To do so, we sample 1000 parameter values from the posterior distributions and simulate the resulting dynamics.
 We can then plot these dynamics over our data to check if the model is a good fit.
 
 ```{r}
@@ -646,8 +657,8 @@ panel_a = ggplot(filtered_data) +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
-  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = '#009E73', alpha = 0.01) +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
+  geom_line(data = predictions, mapping = aes(x = time, y = n2, group = id), color = '#CC79A7', alpha = 0.01) +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
@@ -671,14 +682,14 @@ panel_a = ggplot(filtered_data) +
   ylab('Density of Blepharisma sp. (indiv./mL)')
 
 panel_b = ggplot(filtered_data) +
-  geom_point(mapping = aes(x = t, y = n2), color = '#009E73') +
+  geom_point(mapping = aes(x = t, y = n2), color = '#CC79A7') +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun.min = function(x) quantile(x, 0.05),
                fun.max = function(x) quantile(x, 0.95),
-               geom = 'ribbon', fill = '#009E73', alpha = 0.2) +
+               geom = 'ribbon', fill = '#CC79A7', alpha = 0.2) +
   stat_summary(data = predictions, mapping = aes(x = time, y = n2),
                fun = median,
-               geom = 'line', color = '#009E73') +
+               geom = 'line', color = '#CC79A7') +
   xlab('Time (h)') +
   ylab('Density of Tetrahymena sp. (indiv./mL)')
 
@@ -688,7 +699,19 @@ ggarrange(panel_a, panel_b, nrow = 2)
 ## Conclusion
 Using Rstan, we have been able to fit the Lotka-Volterra model to experimental time series.
 This allowed us to estimate the growth rate, carrying capacity and interspecific competition strength of two protist species (_Blepharisma_ sp. and _Tetrahymena thermophila_) on the same medium:
+
 ```{r, echo = FALSE}
+# personalized fill palette
+scale_fill_colorblind2 = function(.ColorList = c(2, 8), ...){
+    scale_fill_discrete(..., type = colorblind_pal()(8)[.ColorList])
+}
+# personalized color
+scale_color_colorblind2 = function(.ColorList = c(2, 8), ...){
+  scale_color_discrete(..., type = colorblind_pal()(8)[.ColorList])
+}
+
+options(ggplot2.discrete.colour = scale_color_colorblind2)
+options(ggplot2.discrete.fill = scale_fill_colorblind2)
 posterior_df = data.frame(posteriors)
 
 posterior_ble <- posterior_df %>%
@@ -725,9 +748,9 @@ ggarrange(panel_r, panel_K, panel_alpha, ncol = 3, common.legend = TRUE)
 ```
 
 We can see that both species grow at similar rates (despite the larger uncertainty on _Blepharisma_ sp.'s growth rate), but their carrying capacities and competition rates are orders of magnitudes apart.
-In particular, _Blepharisma_ sp. experiences very low competition but exerts a strong competition on _Tetrahymena_ sp., which explains why the former ends up excluding the latter.
+In particular, _Blepharisma_ sp. experiences very low competition but exerts a strong competition on _Tetrahymena thermophila_, which explains why the former ends up excluding the latter.
 
 For the sake of demonstration, we have worked here with a very simple model on a single time series.
-However, Rstan's flexibility allows to build finer model taking advantage of experimental replicates and various time series (_e.g._, mono-, bi- and tri-specific time series.)
+However, Rstan's flexibility allows to build finer model taking advantage of experimental replicates and various time series (_e.g._, mono-, bi- and tri-specific time series).
 If you want to delve into the specific of such a model, I invite you to check out the [code](https://doi.org/10.5281/zenodo.6364903) for the research article from which the data comes.
 
